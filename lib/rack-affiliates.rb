@@ -26,21 +26,23 @@ module Rack
     def call(env)
       @req = Rack::Request.new(env)
 
-      params_tag = @req.params[@config.param]
-      cookie_tag = @req.cookies[@config.cookie_tag]
+      if !@config.skip_asset_file? or !asset_file?
+        params_tag = @req.params[@config.param]
+        cookie_tag = @req.cookies[@config.cookie_tag]
 
-      if cookie_tag
-        tag, from, time = cookie_info
-      end
+        if cookie_tag
+          tag, from, time = cookie_info
+        end
 
-      if params_tag && params_tag != cookie_tag
-        tag, from, time = params_info
-      end
+        if params_tag && params_tag != cookie_tag
+          tag, from, time = params_info
+        end
 
-      if tag
-        env['affiliate.tag']  = tag
-        env['affiliate.from'] = from
-        env['affiliate.time'] = time
+        if tag
+          env['affiliate.tag']  = tag
+          env['affiliate.from'] = from
+          env['affiliate.time'] = time
+        end
       end
 
       status, headers, body = @app.call(env)
@@ -77,7 +79,14 @@ module Rack
           cookie_hash[:domain] = @config.domain if @config.domain
           Rack::Utils.set_cookie_header!(headers, key, cookie_hash)
       end
+    end
 
+    private
+    def asset_file?
+      file_ext = ::File.extname(@req.path_info)
+      mime_type = Rack::Mime.mime_type(file_ext, 'text/html')
+
+      mime_type.eql?('text/css') || mime_type =~ /^(image|application)\//
     end
   end
 end
