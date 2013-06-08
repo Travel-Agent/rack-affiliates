@@ -1,3 +1,5 @@
+require 'rack-affiliates/configuration'
+
 module Rack
   #
   # Rack Middleware for extracting information from the request params and cookies.
@@ -5,33 +7,38 @@ module Rack
   # +env['affiliate.time'] if it detects a request came from an affiliated link 
   #
   class Affiliates
-    COOKIE_TAG = "aff_tag"
-    COOKIE_FROM = "aff_from"
-    COOKIE_TIME = "aff_time"
+    class << self
+      def configure(&block)
+        yield(config)
+        config
+      end
 
-    def initialize(app, opts = {})
+      def config
+        @configuration ||= Configuration.new
+      end
+    end
+
+    def initialize(app)
       @app = app
-      @param = opts[:param] || "ref"
-      @cookie_ttl = opts[:ttl] || 60*60*24*30  # 30 days
-      @cookie_domain = opts[:domain] || nil
+      @config = Rack::Affiliates.config
     end
 
     def call(env)
-      req = Rack::Request.new(env)
+      @req = Rack::Request.new(env)
 
-      params_tag = req.params[@param]
-      cookie_tag = req.cookies[COOKIE_TAG]
+      params_tag = @req.params[@config.param]
+      cookie_tag = @req.cookies[@config.cookie_tag]
 
       if cookie_tag
-        tag, from, time = cookie_info(req)
+        tag, from, time = cookie_info
       end
 
       if params_tag && params_tag != cookie_tag
-        tag, from, time = params_info(req)
+        tag, from, time = params_info
       end
 
       if tag
-        env["affiliate.tag"] = tag
+        env['affiliate.tag']  = tag
         env['affiliate.from'] = from
         env['affiliate.time'] = time
       end
@@ -45,28 +52,32 @@ module Rack
       [status, headers, body]
     end
 
-    def affiliate_info(req)
-      params_info(req) || cookie_info(req) 
+    def affiliate_info
+      params_info || cookie_info
     end
 
-    def params_info(req)
-      [req.params[@param], req.env["HTTP_REFERER"], Time.now.to_i]
+    def params_info
+      [@req.params[@config.param], @req.env["HTTP_REFERER"], Time.now.to_i]
     end
 
-    def cookie_info(req)
-      [req.cookies[COOKIE_TAG], req.cookies[COOKIE_FROM], req.cookies[COOKIE_TIME].to_i] 
+    def cookie_info
+      cookies = @req.cookies
+      [cookies[@config.cookie_tag], cookies[@config.cookie_from], cookies[@config.cookie_time].to_i] 
+    end
+
     end
 
     protected
     def bake_cookies(headers, tag, from, time)
-      expires = Time.now + @cookie_ttl
-      { COOKIE_TAG => tag, 
-        COOKIE_FROM => from, 
-        COOKIE_TIME => time }.each do |key, value|
+      expires = Time.now + @config.ttl
+      { @config.cookie_tag => tag,
+        @config.cookie_from => from,
+        @config.cookie_time => time }.each do |key, value|
           cookie_hash = {:value => value, :expires => expires}
-          cookie_hash[:domain] = @cookie_domain if @cookie_domain
+          cookie_hash[:domain] = @config.domain if @config.domain
           Rack::Utils.set_cookie_header!(headers, key, cookie_hash)
-      end 
+      end
+
     end
   end
 end
