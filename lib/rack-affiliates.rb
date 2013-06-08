@@ -77,6 +77,7 @@ module Rack
         @config.cookie_time => time }.each do |key, value|
           cookie_hash = {:value => value, :expires => expires}
           cookie_hash[:domain] = @config.domain if @config.domain
+          cookie_hash[:path]   = @config.path   if @config.path
           Rack::Utils.set_cookie_header!(headers, key, cookie_hash)
       end
     end
