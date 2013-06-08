@@ -34,11 +34,11 @@ module Rack
           tag, from, time = cookie_info
         end
 
-        if params_tag && params_tag != cookie_tag
+        if params_tag && params_tag != cookie_tag && valid_tag?(params_tag)
           tag, from, time = params_info
         end
 
-        if tag
+        if tag && valid_tag?(tag)
           env['affiliate.tag']  = tag
           env['affiliate.from'] = from
           env['affiliate.time'] = time
@@ -67,6 +67,12 @@ module Rack
       [cookies[@config.cookie_tag], cookies[@config.cookie_from], cookies[@config.cookie_time].to_i] 
     end
 
+    def valid_tag?(tag)
+      if @config.valid_tag.kind_of? Proc
+        @config.valid_tag.call(tag)
+      else
+        true
+      end
     end
 
     protected
