@@ -6,7 +6,7 @@ module Rack
       attr_accessor :domain
       attr_accessor :path
       attr_accessor :cookie_prefix
-      attr_accessor :skip_asset_file
+      attr_accessor :skip_asset_files
 
       def initialize
         @ttl           = 1.month.to_i
@@ -14,7 +14,7 @@ module Rack
         @domain        = nil
         @path          = '/'
         @cookie_prefix = 'aff'
-        @skip_asset_file = true
+        @skip_asset_files = true
       end
 
       def cookie_tag
@@ -34,8 +34,8 @@ module Rack
         @valid_tag
       end
 
-      def skip_asset_file?
-        @skip_asset_file
+      def skip_asset_files?
+        @skip_asset_files
       end
     end
   end

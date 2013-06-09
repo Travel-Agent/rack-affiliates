@@ -26,7 +26,7 @@ module Rack
     def call(env)
       @req = Rack::Request.new(env)
 
-      if !@config.skip_asset_file? or !asset_file?
+      if !@config.skip_asset_files? or !asset_file?
         params_tag = @req.params[@config.param]
         cookie_tag = @req.cookies[@config.cookie_tag]
 
